@@ -1,0 +1,30 @@
+# Document 01 — PRD (Product Requirements Document)
+
+**App Name**
+accent master v1
+
+**Tagline**
+A visual reading assistant to master British pronunciation through phonetics, syllable stress, and native audio.
+
+**Problem**
+Users struggle to understand how words in a book actually sound in a British accent, specifically failing to grasp phonetic structures and syllable stress while reading.
+
+**Target User**
+English learners and pronunciation enthusiasts who specifically want to master the British accent by reading and listening simultaneously.
+
+**Core Features (Must Have)**
+*   **Centered Upload Interface (NotebookLM inspired):** Initial screen has a clean, centered interface for PDF, Image, File upload, Drag & Drop, or Copy/Paste.
+*   **Dual-Screen UI (Post-upload):** Main text area on the right, tools/settings panel on the left, separated by a red vertical line.
+*   **Toggleable Phonetics:** Phonetic transcription appearing directly underneath the main text, with a global ON/OFF toggle. 
+*   **Interactive Audio:** Clicking any specific word in the main text instantly plays its British pronunciation.
+*   **Visual Syllable Stress:** Highlights the 2-3 letters of the stressed syllable in a word. User controls highlight color and opacity.
+*   **Dictionary Bar:** Opens via a custom UP/DOWN diamond button. Shows Verb/Noun, Bengali & English meaning, and Synonyms.
+
+**Out of Scope**
+*   Text-replacement for Schwa (learned via the standard IPA phonetics provided).
+*   Visual Intonation mapping (learned naturally by listening to the audio).
+*   User accounts, login, or saving history (MVP is completely stateless).
+
+**Success Metrics**
+*   Text parsing and phonetic generation happen in under 3 seconds.
+*   Zero cost to run the application (100% free open-source tools).

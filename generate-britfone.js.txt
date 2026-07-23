@@ -1,0 +1,70 @@
+const fs = require('fs');
+const readline = require('readline');
+
+async function parseBritfone(inputFile, outputFile) {
+    if (!fs.existsSync(inputFile)) {
+        console.log(`⚠️ Source file '${inputFile}' not found! Please make sure it's in the same folder.`);
+        return;
+    }
+
+    console.log(`\n⏳ Processing Britfone Dictionary...`);
+    const fileStream = fs.createReadStream(inputFile);
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+
+    const dict = {};
+    let totalLines = 0;
+    let writtenWords = 0;
+    let skippedLines = 0;
+    let duplicateVariants = 0;
+
+    for await (const line of rl) {
+        totalLines++;
+        
+        // Skip empty lines
+        if (!line.trim()) {
+            skippedLines++;
+            continue;
+        }
+
+        // Split ONLY at the first comma (safest for IPA strings)
+        const commaIndex = line.indexOf(',');
+        if (commaIndex === -1) {
+            skippedLines++; // Malformed line
+            continue;
+        }
+
+        let word = line.substring(0, commaIndex).trim();
+        const phonemes = line.substring(commaIndex + 1).trim();
+
+        if (!word || !phonemes) {
+            skippedLines++;
+            continue;
+        }
+
+        // Clean the word based on instructions
+        word = word.toLowerCase();                  // Lowercase
+        word = word.replace(/\(\d+\)$/, '');        // Strip (1), (2) variants
+        word = word.replace(/_/g, ' ');             // Replace underscores with spaces
+
+        // Keep first occurrence only
+        if (!dict[word]) {
+            dict[word] = phonemes;
+            writtenWords++;
+        } else {
+            duplicateVariants++; // Word already exists
+        }
+    }
+
+    // Write to beep_dict.json (as expected by Next.js app)
+    fs.writeFileSync(outputFile, JSON.stringify(dict, null, 2));
+    
+    console.log(`✅ ${outputFile} successfully generated!`);
+    console.log(`📊 Stats:`);
+    console.log(`   - Total Lines Read: ${totalLines}`);
+    console.log(`   - Total Words Written: ${writtenWords}`);
+    console.log(`   - Duplicates/Variants Skipped: ${duplicateVariants}`);
+    console.log(`   - Malformed/Empty Lines Skipped: ${skippedLines}`);
+}
+
+// Run the script
+parseBritfone('britfone.main.3.0.1.csv.txt', 'beep_dict.json');

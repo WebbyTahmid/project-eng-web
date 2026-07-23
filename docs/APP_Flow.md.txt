@@ -1,0 +1,24 @@
+# Document 03 — App Flow (Navigation & User Journey Map)
+
+**Pages List**
+*   `/` (Home - Single Page Application)
+
+**First Screen (Empty State - The Upload Phase)**
+*   A clean, minimalist, centered upload interface in the middle of the screen (inspired by NotebookLM/Antigravity).
+*   Options: Upload PDF/Image/File OR Drag & Drop OR Copy/Paste text.
+*   No dual-screen layout visible yet. Just focus on input.
+
+**Core User Journey 1: Transition to Reading Area**
+1. User uploads a file or pastes text in the centered upload box.
+2. The UI smoothly transitions (splits) into the Dual-Screen Layout (Red line separator).
+3. Extracted text appears on the Right Screen. Left Screen shows controls.
+
+**Core User Journey 2: Phonetics & Stress**
+1. User toggles "Phonetics" ON. IPA spelling appears below words.
+2. User selects "Syllable Stress" mode.
+3. User adjusts sliders (Color and Intensity) in the left panel to highlight the stressed syllables dynamically in the text.
+
+**Core User Journey 3: Audio & Dictionary**
+1. User clicks a word. OmniVoice plays the British pronunciation.
+2. User clicks the "UP" arrow on the diamond-shaped toggle button.
+3. The Dictionary Bar slides into view on the left screen showing meaning and synonyms.

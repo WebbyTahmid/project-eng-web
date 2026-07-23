@@ -1,0 +1,45 @@
+# Document 06 — Implementation Plan & Execution Rules
+
+## 🛑 Behavioral Guidelines (Karpathy Rules)
+**Always apply these rules before and during the execution of any phase:**
+1. **Think Before Coding:** Don't assume. Surface tradeoffs. If multiple interpretations exist, present them. If a simpler approach exists, say so. Push back when warranted.
+2. **Simplicity First:** Minimum code that solves the problem. No speculative features, no unrequested abstractions, and no "flexibility" that wasn't asked for. If you write 200 lines and it could be 50, rewrite it.
+3. **Surgical Changes:** Touch only what you must. Don't "improve" adjacent code, format, or refactor things that aren't broken. Match existing style. Remove orphans your changes created.
+4. **Goal-Driven Execution:** Define verifiable success criteria for each step. (e.g., `1. [Step] → verify: [check]`). Loop until verified before moving to the next task.
+
+---
+
+## 🚀 Build Sequence (Step-by-Step)
+
+**Phase 1: Project Setup & UI Layout**
+*   Initialize Next.js project.
+*   Build the core layout: Initial state is a centered upload interface (NotebookLM inspired).
+*   Build the post-upload dual-screen layout with the vertical red divider (Left = Controls, Right = Text Area).
+
+**Phase 2: Text Input & Extraction**
+*   Implement drag-and-drop / file upload zone in the centered UI.
+*   Integrate Tesseract.js for images and PDF.js for PDFs.
+*   Render the extracted text into clickable span elements on the Main Screen.
+
+**Phase 3: Phonetics & Syllable Stress Engine**
+*   Integrate the British phonetic dictionary logic.
+*   Build the logic to append phonetics below each word (with UI toggle).
+*   Build the algorithm to identify stressed syllables and apply the custom color/opacity injected from the Left Panel sliders.
+
+**Phase 4: Dictionary Bar & Custom Button**
+*   Design and build the UP/DOWN diamond button.
+*   Build the Dictionary Bar UI component.
+*   Integrate the Free Dictionary API to populate data on word click.
+
+**Phase 5: Audio Integration (OmniVoice)**
+*   Set up OmniVoice TTS generation for individual words.
+*   Bind the audio trigger to the word-click event on the main text.
+*   Implement Audio speed controls (1.5x, 0.75x, 0.5x).
+
+**Phase 6: Polish & Deploy**
+*   Test layout on laptop screen sizes specifically (to ensure dictionary bar fits).
+*   Ensure zero latency on text rendering.
+*   Deploy to Vercel.
+
+**Done Criteria**
+User can upload a page via the centered UI, see the text with phonetics in the dual-screen layout, highlight syllable stress with a chosen color, click a word to hear it in a British accent, and toggle the dictionary bar to see its meaning.

@@ -1,0 +1,99 @@
+const fs = require('fs');
+const readline = require('readline');
+const https = require('https');
+
+const BEEP_URL = 'https://raw.githubusercontent.com/kylebgorman/beep/master/beep';
+
+async function downloadFile(url, dest) {
+    console.log(`Downloading ${dest}...`);
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(dest);
+        https.get(url, (response) => {
+            if (response.statusCode !== 200) {
+                reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
+                return;
+            }
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                console.log(`✅ Downloaded ${dest} successfully.`);
+                resolve();
+            });
+        }).on('error', (err) => {
+            fs.unlink(dest, () => reject(err));
+        });
+    });
+}
+
+async function parseDictionary(inputFile, outputFile, dictName) {
+    if (!fs.existsSync(inputFile)) {
+        console.log(`⚠️ ${inputFile} not found! Skipping ${dictName}...`);
+        return;
+    }
+
+    console.log(`\n⏳ Processing ${dictName}...`);
+    const fileStream = fs.createReadStream(inputFile);
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+
+    const dict = {};
+    let processed = 0;
+    let skipped = 0;
+
+    for await (const line of rl) {
+        // স্কিপ কমেন্ট লাইন (CMU তে ;;; এবং BEEP তে # বা %)
+        if (line.startsWith(';;;') || line.startsWith('#') || line.startsWith('%')) continue;
+
+        // ফিক্স: এক বা একাধিক স্পেস বা ট্যাবের জন্য Regex Split
+        const parts = line.trim().split(/\s+/);
+        
+        if (parts.length >= 2) {
+            let word = parts[0].toLowerCase();
+            
+            // ভ্যারিয়েন্ট যেমন (1), (2) মুছে মূল শব্দটা বের করা
+            word = word.replace(/\(\d+\)$/, ''); 
+            
+            // যদি শব্দে স্পেশাল ক্যারেক্টার থাকে তবে স্কিপ (Clean data-র জন্য)
+            if (!/^[a-z']+$/.test(word)) {
+                skipped++;
+                continue;
+            }
+
+            const phonemes = parts.slice(1).join(' ');
+            
+            // ডুপ্লিকেট ভ্যারিয়েন্টগুলো স্কিপ করে শুধু প্রথম/মেইন স্ট্রেস প্যাটার্নটা রাখা
+            if (!dict[word]) {
+                dict[word] = phonemes;
+                processed++;
+            } else {
+                skipped++; // Variant skipped
+            }
+        } else {
+            skipped++;
+        }
+    }
+
+    fs.writeFileSync(outputFile, JSON.stringify(dict, null, 2));
+    console.log(`✅ ${outputFile} successfully generated!`);
+    console.log(`📊 Stats -> Processed Words: ${processed} | Skipped/Variants: ${skipped}`);
+}
+
+async function main() {
+    try {
+        // CMU আগে থেকেই ডাউনলোড করা আছে, তাই শুধু BEEP ডাউনলোড করবো (নতুন ওয়ার্কিং লিঙ্ক দিয়ে)
+        if (!fs.existsSync('beep.txt')) {
+            await downloadFile(BEEP_URL, 'beep.txt');
+        }
+
+        // CMU (US) পার্সিং
+        await parseDictionary('cmudict.txt', 'cmu_dict.json', 'CMU Dictionary (US)');
+        
+        // BEEP (UK) পার্সিং
+        await parseDictionary('beep.txt', 'beep_dict.json', 'BEEP Dictionary (UK)');
+        
+        console.log('\n🚀 All done! Ready for Next.js integration.');
+    } catch (error) {
+        console.error('\n❌ Error:', error.message);
+    }
+}
+
+main();

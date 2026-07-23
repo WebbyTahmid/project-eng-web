@@ -9,9 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "compromise": "^14.16.0",
+    "compromise-syllables": "^0.0.6",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.26.0",
     "next": "16.2.11",
+    "pdfjs-dist": "^6.1.200",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

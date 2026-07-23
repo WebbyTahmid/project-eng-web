@@ -1,0 +1,30 @@
+# Document 02 — TRD (Technical Requirements Document)
+
+**Frontend**
+Next.js 14 with TypeScript, Tailwind CSS for styling.
+
+**Backend**
+Stateless architecture. Next.js API Routes / Vercel Serverless functions for handling API proxying.
+
+**Database**
+NO DATABASE REQUIRED for MVP. The app is purely functional and stateless to keep hosting 100% free.
+
+**Auth**
+NO AUTH REQUIRED. Open access.
+
+**Hosting**
+Vercel (Lifetime free tier).
+
+**Third-party APIs & Free Tools**
+*   **Audio (TTS):** OmniVoice (Open-source, Apache-2.0). Used for zero-shot, natural British Text-to-Speech without API costs.
+*   **Dictionary:** Free Dictionary API (api.dictionaryapi.dev). Used to fetch meanings, parts of speech, and synonyms for free.
+*   **Phonetics & Stress:** Britfone data or `compromise.js`/`cmudict` library adapted for British standard pronunciation.
+
+**Key Libraries**
+*   `Tesseract.js`: For Client-side Image OCR (extracting text from uploaded images).
+*   `pdf.js`: For extracting text from uploaded PDFs.
+*   `Framer Motion` (Optional): For smooth UP/DOWN toggle animation of the Dictionary Bar.
+
+**Constraints**
+*   MUST use 100% free tools. No paid APIs (No ElevenLabs, No OpenAI paid tiers).
+*   Must be highly responsive to fit the dual-screen layout seamlessly on laptop screens.

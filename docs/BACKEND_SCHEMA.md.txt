@@ -1,0 +1,22 @@
+# Document 05 — Backend Schema Template
+
+**Architecture Note**
+This application is strictly STATELESS. There is no traditional backend database. All processing happens either client-side or via stateless serverless proxy functions.
+
+**Data Flow 1: Text Processing (Client-Side)**
+*   Input: Image/PDF file.
+*   Processor: Tesseract.js / PDF.js.
+*   Output: Raw String Text mapped to the UI.
+
+**Data Flow 2: Word Analysis**
+*   Input: Raw text word.
+*   Processor: Open-source pronunciation dictionary (Britfone/JS library).
+*   Output JSON: `{ "word": "concentrate", "phonetic": "/ˈkɒnsəntreɪt/", "stressed_letters": "cen" }`
+
+**Data Flow 3: Dictionary API (Proxy Route)**
+*   Endpoint: `GET https://api.dictionaryapi.dev/api/v2/entries/en/<word>`
+*   Response Handling: Extract `meanings`, `partOfSpeech`, and `synonyms`. (Bengali meaning can be handled via a free translation API tier if required, or omitted if purely English-to-English is preferred for V1).
+
+**Data Flow 4: Audio Generation**
+*   Processor: OmniVoice TTS logic.
+*   Trigger: OnClick event on specific word component.

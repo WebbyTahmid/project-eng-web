@@ -1,0 +1,23 @@
+# Document 04 — UI/UX Design Brief Template
+
+**Aesthetic**
+Clean, academic, reading-focused. Uncluttered. No extra visual noise.
+
+**Layout Architecture**
+*   Two-pane layout separated by a distinct **Red Vertical Line**.
+*   **Right Pane (Main Screen):** Dedicated purely to the text, phonetics, and reading experience.
+*   **Left Pane (Side Screen):** Contains all toggles, color settings, intensity sliders, audio speed controls, and the Dictionary Bar.
+
+**Key UI Components**
+*   **UP/DOWN Toggle Button:** A distinct diamond-shaped button (top half UP, bottom half DOWN) used exclusively to open/close the Dictionary Bar in the side screen to save laptop screen height.
+*   **Intensity Sliders:** Simple horizontal range sliders for user-controlled opacity.
+*   **Phonetics Text:** Must be a thinner, lighter font placed closely beneath the main text to avoid clutter.
+
+**Colors**
+*   Background: White/Off-white (book-like).
+*   Main Text: Dark Blue or Black (Highly readable).
+*   Separator Line: Red.
+*   Syllable Stress Highlight: User-defined via settings (Dynamic).
+
+**Typography**
+Highly legible sans-serif font (e.g., Inter or Roboto). Phonetics should use a font that perfectly renders IPA symbols (e.g., Arial, Lucida Sans Unicode).
