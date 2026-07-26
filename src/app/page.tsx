@@ -50,9 +50,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-white">
+    <main className="min-h-screen flex flex-row bg-white min-w-[768px] overflow-x-auto">
       {/* Left Pane - Reader */}
-      <section className="flex-1 h-screen overflow-y-auto p-8 md:p-16 border-r-2 border-red-500">
+      <section className="flex-1 h-screen overflow-y-auto p-6 md:p-12 lg:p-16 border-r-2 border-red-500 min-w-0">
         <ReaderPane 
           text={extractedText}
           phoneticsEnabled={phoneticsEnabled}
@@ -70,7 +70,7 @@ export default function Home() {
       </section>
 
       {/* Right Pane - Controls */}
-      <section className="w-full md:w-[350px] lg:w-[400px] h-screen overflow-y-auto bg-white p-6 flex flex-col shrink-0 relative">
+      <section className="w-[320px] md:w-[350px] lg:w-[400px] h-screen overflow-y-auto bg-white p-6 flex flex-col shrink-0 relative">
         <ControlsPane 
           phoneticsEnabled={phoneticsEnabled}
           setPhoneticsEnabled={setPhoneticsEnabled}
