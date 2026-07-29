@@ -116,15 +116,7 @@ export default function ReaderPane({
   }
 
   return (
-    <div className="w-full h-full pb-32 relative">
-      {/* Sticky Premium Navbar */}
-      <header className="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-md py-3.5 px-4 mb-8 border-b border-emerald-100/70 shadow-xs flex items-center justify-center transition-all duration-300">
-        <div className="inline-flex items-center gap-2.5 px-5 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-400/40 text-emerald-600 font-bold text-sm tracking-wide uppercase shadow-xs group hover:border-emerald-500 transition-colors">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="font-extrabold tracking-wider text-emerald-600 text-sm">Syllable Stress</span>
-        </div>
-      </header>
-
+    <div className="w-full pb-32">
       {isProcessing ? (
         <div className="flex items-center justify-center h-64 text-gray-400">
           <p className="animate-pulse">Analyzing linguistic patterns...</p>
