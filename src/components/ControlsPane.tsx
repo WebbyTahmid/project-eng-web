@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, Save, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playBritishAudio } from '@/utils/audio';
+import { getBanglaMeaningAsync } from '@/utils/bengaliDict';
 
 interface ControlsPaneProps {
   fullText?: string;
@@ -63,17 +64,27 @@ export default function ControlsPane({
 }: ControlsPaneProps) {
   const [dictionaryOpen, setDictionaryOpen] = useState(false);
   const [dictionaryData, setDictionaryData] = useState<any>(null);
+  const [banglaMeaning, setBanglaMeaning] = useState<string>('');
   const [loadingDict, setLoadingDict] = useState(false);
 
   React.useEffect(() => {
     if (selectedWord) {
-      fetchDictionary(selectedWord.replace(/[^a-zA-Z]/g, ''));
+      const clean = selectedWord.replace(/[^a-zA-Z]/g, '');
+      fetchDictionary(clean);
+      setDictionaryOpen(true); // Automatically open dictionary bar on word click
     }
   }, [selectedWord]);
 
   const fetchDictionary = async (word: string) => {
     if (!word) return;
     setLoadingDict(true);
+    setBanglaMeaning('');
+    
+    // Fetch Bangla meaning in parallel
+    getBanglaMeaningAsync(word).then((meaning) => {
+      setBanglaMeaning(meaning);
+    });
+
     try {
       const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
       if (res.ok) {
@@ -286,7 +297,7 @@ export default function ControlsPane({
       </div>
 
       {/* Diamond Toggle Button */}
-      <div className="absolute left-0 -translate-x-1/2 bottom-32 z-20" style={{ transform: dictionaryOpen ? 'translate(-50%, -280px)' : 'translate(-50%, 0)' }}>
+      <div className="absolute left-0 -translate-x-1/2 bottom-32 z-20" style={{ transform: dictionaryOpen ? 'translate(-50%, -300px)' : 'translate(-50%, 0)' }}>
         <button 
           onClick={() => setDictionaryOpen(!dictionaryOpen)}
           className="w-12 h-16 relative group cursor-pointer transition-transform duration-300"
@@ -307,37 +318,59 @@ export default function ControlsPane({
         {dictionaryOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 260, opacity: 1 }}
+            animate={{ height: 320, opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="absolute bottom-0 left-0 right-0 bg-green-50 border-t-2 border-red-500 rounded-t-lg overflow-hidden flex flex-col z-10 shadow-lg"
+            className="absolute bottom-0 left-0 right-0 bg-white border-t-4 border-[#e03131] rounded-t-xl overflow-hidden flex flex-col z-10 shadow-2xl"
           >
-            <div className="p-4 overflow-y-auto h-full text-black">
-              <h4 className="text-red-500 font-bold mb-2">Dictionary Bar:</h4>
+            <div className="p-5 overflow-y-auto h-full text-black">
+              {/* Blueprint Header */}
+              <h3 className="text-[#e03131] font-black text-2xl mb-3 tracking-wide">Dictionary Bar:</h3>
               
               {!selectedWord ? (
-                <p className="text-sm text-gray-500">Click a word in the text to see its meaning.</p>
-              ) : loadingDict ? (
-                <p className="text-sm text-gray-500">Loading...</p>
-              ) : dictionaryData ? (
-                <div>
-                  <h5 className="font-bold text-lg">{dictionaryData.word}</h5>
-                  {dictionaryData.phonetics?.[0]?.text && (
-                    <span className="text-sm text-gray-500">{dictionaryData.phonetics[0].text}</span>
-                  )}
-                  
-                  {dictionaryData.meanings?.map((meaning: any, i: number) => (
-                    <div key={i} className="mt-3">
-                      <span className="text-xs font-bold uppercase text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
-                        {meaning.partOfSpeech}
-                      </span>
-                      <p className="text-sm mt-1 text-gray-800">
-                        {meaning.definitions[0]?.definition}
-                      </p>
-                    </div>
-                  ))}
+                <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 text-stone-500 text-sm">
+                  Click any word in the text to view its definition and Bangla meaning.
                 </div>
               ) : (
-                <p className="text-sm text-red-500">Word not found in dictionary.</p>
+                <div className="bg-white border-2 border-[#868e96] rounded-xl p-4 shadow-sm space-y-3">
+                  {/* Word + Bangla Meaning Row */}
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-[#9c36b5] font-extrabold text-2xl md:text-3xl capitalize tracking-tight">
+                      {dictionaryData?.word || selectedWord}
+                    </span>
+                    {banglaMeaning && (
+                      <span className="text-[#f08c00] font-bold text-xl md:text-2xl">
+                        {banglaMeaning}
+                      </span>
+                    )}
+                  </div>
+
+                  {loadingDict && !dictionaryData ? (
+                    <div className="text-stone-400 text-sm animate-pulse">Loading dictionary definition...</div>
+                  ) : dictionaryData && dictionaryData.meanings ? (
+                    <div className="space-y-4">
+                      {dictionaryData.meanings.slice(0, 2).map((meaning: any, i: number) => (
+                        <div key={i} className="space-y-2">
+                          {/* Part of Speech */}
+                          <span className="text-[#1971c2] font-bold text-lg block capitalize">
+                            {meaning.partOfSpeech}
+                          </span>
+                          
+                          {/* Definition Bullet Row */}
+                          {meaning.definitions?.slice(0, 2).map((def: any, defIdx: number) => (
+                            <div key={defIdx} className="flex items-start gap-2.5 text-[#a18072] font-medium text-sm md:text-base leading-snug">
+                              <span className="text-[#846358] text-base leading-none select-none mt-1">◆</span>
+                              <span>{def.definition}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-stone-500 text-sm italic">
+                      Definition details unavailable. (Bangla meaning displayed above).
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </motion.div>
