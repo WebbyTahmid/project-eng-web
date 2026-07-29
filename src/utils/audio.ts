@@ -1,5 +1,25 @@
-// Keep current Audio element reference to allow cancelling/replaying without overlap
 let currentAudio: HTMLAudioElement | null = null;
+
+// Native Web Speech fallback helper
+const fallbackNativeTTS = (text: string, speed: number, volume: number) => {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    console.error("Audio Engine: Speech synthesis unsupported.");
+    return;
+  }
+  
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = speed;
+  utterance.volume = volume / 100;
+  utterance.lang = 'en-US';
+  
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+  if (preferredVoice) utterance.voice = preferredVoice;
+
+  console.log(`Audio Engine: Playing via native browser TTS fallback for "${text}"`);
+  window.speechSynthesis.speak(utterance);
+};
 
 export const playBritishAudio = async (text: string, speed: number, volume: number = 50) => {
   if (!text) return;
@@ -10,11 +30,15 @@ export const playBritishAudio = async (text: string, speed: number, volume: numb
     currentAudio.currentTime = 0;
     currentAudio = null;
   }
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
 
   console.log(`TTS Audio Engine: Requesting ElevenLabs audio for: "${text.length > 50 ? text.substring(0, 50) + '...' : text}"`);
 
   try {
-    const response = await fetch('/api/tts', {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+    const response = await fetch(`${API_BASE}/api/tts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -23,8 +47,8 @@ export const playBritishAudio = async (text: string, speed: number, volume: numb
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("TTS Audio Engine: API request failed.", errorData);
+      console.warn("TTS Audio Engine: ElevenLabs API returned non-OK status. Falling back to native browser speech...");
+      fallbackNativeTTS(text, speed, volume);
       return;
     }
 
@@ -33,26 +57,23 @@ export const playBritishAudio = async (text: string, speed: number, volume: numb
     const audioUrl = URL.createObjectURL(audioBlob);
 
     const audio = new Audio(audioUrl);
-    
-    // Web Audio API playback rate mapping (speed variable from UI)
     audio.playbackRate = speed;
     audio.volume = volume / 100;
 
     currentAudio = audio;
 
-    // Event listeners for debugging and cleanup
-    audio.onplay = () => console.log("TTS Audio Engine: Started playing audio chunk.");
     audio.onended = () => {
-      console.log("TTS Audio Engine: Finished playing audio.");
-      URL.revokeObjectURL(audioUrl); // Cleanup
+      URL.revokeObjectURL(audioUrl);
     };
     audio.onerror = (e) => {
-      console.error("TTS Audio Engine: Playback failed.", e);
+      console.error("TTS Audio Engine: Audio element playback failed, falling back to native TTS.", e);
       URL.revokeObjectURL(audioUrl);
+      fallbackNativeTTS(text, speed, volume);
     };
 
     await audio.play();
   } catch (error) {
-    console.error("TTS Audio Engine: Fatal error in the ElevenLabs speech synthesis pipeline:", error);
+    console.error("TTS Audio Engine: ElevenLabs fetch error. Using browser speech fallback:", error);
+    fallbackNativeTTS(text, speed, volume);
   }
 };
