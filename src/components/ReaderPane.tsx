@@ -116,9 +116,16 @@ export default function ReaderPane({
   }
 
   return (
-    <div className="w-full h-full pb-32">
-      <div className="border border-green-400 rounded w-fit mx-auto px-4 py-1 mb-8">
-        <h2 className="text-green-500 font-bold text-center">Syllable Stress</h2>
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="border border-green-400 rounded px-4 py-1">
+          <h2 className="text-green-500 font-bold text-center">Syllable Stress</h2>
+        </div>
+        <button
+          onClick={() => playBritishAudio(text, audioSpeed, volume)}
+          className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-medium text-sm px-4 py-1.5 rounded-full shadow transition cursor-pointer"
+        >
+          🔊 Listen Full Text
+        </button>
       </div>
 
       {isProcessing ? (

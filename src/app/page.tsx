@@ -72,6 +72,7 @@ export default function Home() {
       {/* Right Pane - Controls */}
       <section className="w-[320px] md:w-[350px] lg:w-[400px] h-screen overflow-y-auto bg-white p-6 flex flex-col shrink-0 relative">
         <ControlsPane 
+          fullText={extractedText}
           phoneticsEnabled={phoneticsEnabled}
           setPhoneticsEnabled={setPhoneticsEnabled}
           syllableStressEnabled={syllableStressEnabled}

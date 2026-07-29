@@ -1,9 +1,11 @@
 "use client";
 import React, { useState } from 'react';
-import { ChevronUp, ChevronDown, Save } from 'lucide-react';
+import { ChevronUp, ChevronDown, Save, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playBritishAudio } from '@/utils/audio';
 
 interface ControlsPaneProps {
+  fullText?: string;
   phoneticsEnabled: boolean;
   setPhoneticsEnabled: (val: boolean) => void;
   syllableStressEnabled: boolean;
@@ -32,6 +34,7 @@ interface ControlsPaneProps {
 }
 
 export default function ControlsPane({
+  fullText,
   phoneticsEnabled,
   setPhoneticsEnabled,
   syllableStressEnabled,
@@ -91,6 +94,14 @@ export default function ControlsPane({
         
         {/* Audio Controls */}
         <div>
+          {fullText && (
+            <button
+              onClick={() => playBritishAudio(fullText, audioSpeed, volume)}
+              className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow transition mb-4 cursor-pointer"
+            >
+              <Volume2 size={18} /> Play Full Paragraph
+            </button>
+          )}
           <h3 className="font-semibold mb-2 text-sm">Audio speed</h3>
           <div className="flex items-center gap-4 text-sm font-medium mb-4">
             <button 
