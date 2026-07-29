@@ -6,6 +6,8 @@ import ControlsPane from "@/components/ControlsPane";
 import ReaderPane from "@/components/ReaderPane";
 import { getWordData } from "@/utils/stressEngine"; // 👈 আমাদের নতুন ইঞ্জিন কানেক্ট করলাম
 
+import OceanBackground from "@/components/OceanBackground";
+
 const UploadArea = dynamic(() => import('@/components/UploadArea'), { ssr: false });
 
 export default function Home() {
@@ -52,17 +54,20 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-row bg-white min-w-[768px] overflow-x-auto">
       {/* Left Pane - Reader */}
-      <section className="flex-1 h-screen flex flex-col border-r-2 border-red-500 min-w-0 bg-white relative overflow-hidden">
+      <section className="flex-1 h-screen flex flex-col border-r-2 border-red-500 min-w-0 relative overflow-hidden">
+        {/* Oceanic WebGL + Image Theme from Stitch Zip */}
+        <OceanBackground />
+
         {/* Dedicated Sticky Top Header Navbar */}
-        <header className="shrink-0 w-full bg-white/95 backdrop-blur-md py-3.5 px-6 border-b border-gray-200 z-30 shadow-xs flex items-center justify-center">
-          <div className="inline-flex items-center gap-2.5 px-6 py-1.5 rounded-full bg-emerald-50 border border-emerald-400/50 text-emerald-600 font-extrabold text-sm tracking-widest uppercase shadow-xs">
+        <header className="shrink-0 w-full bg-white/80 backdrop-blur-md py-3.5 px-6 border-b border-gray-200/80 z-30 shadow-xs flex items-center justify-center">
+          <div className="inline-flex items-center gap-2.5 px-6 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-400/50 text-emerald-600 font-extrabold text-sm tracking-widest uppercase shadow-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Syllable Stress</span>
           </div>
         </header>
 
         {/* Scrollable Reader Content */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16">
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16 z-10 relative">
           <ReaderPane 
             text={extractedText}
             phoneticsEnabled={phoneticsEnabled}

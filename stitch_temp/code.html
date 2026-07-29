@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Syllable Stress &amp; Phonetics Tool</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Include standard WebGL shader component -->
+<script src="https://unpkg.com/webgl-shader-element" type="module"></script>
+<style data-purpose="custom-styles">
+    /* Custom scrollbar for the right panel */
+    .scrollbar-custom::-webkit-scrollbar {
+      width: 8px;
+    }
+    .scrollbar-custom::-webkit-scrollbar-track {
+      background: #f1f1f1; 
+      border-radius: 4px;
+    }
+    .scrollbar-custom::-webkit-scrollbar-thumb {
+      background: #888; 
+      border-radius: 4px;
+    }
+    .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+      background: #555; 
+    }
+    
+    /* Range input styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -6px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    
+    /* Specific range colors based on the image */
+    #audio-speed::-webkit-slider-thumb { background: #475569; }
+    #audio-speed::-webkit-slider-runnable-track { background: #e2e8f0; }
+    
+    #main-text-intensity::-webkit-slider-thumb { background: #ef4444; }
+    #main-text-intensity::-webkit-slider-runnable-track { background: #fca5a5; }
+    
+    #targeted-letters-intensity::-webkit-slider-thumb { background: #22c55e; }
+    #targeted-letters-intensity::-webkit-slider-runnable-track { background: #bbf7d0; }
+    
+    #phonetics-intensity::-webkit-slider-thumb { background: #eab308; }
+    #phonetics-intensity::-webkit-slider-runnable-track { background: #fef08a; }
+
+    /* Custom toggle switch */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #ef4444;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #ef4444;
+    }
+  </style>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+</head>
+<body class="bg-white text-slate-800 h-screen overflow-hidden flex flex-col font-sans">
+<!-- BEGIN: Main App Container -->
+<main class="flex-1 flex overflow-hidden border-t-4 border-slate-800">
+<!-- BEGIN: Left Content Area (Text Display) -->
+<!-- The user requested the background image to replace the flat white background of this area -->
+<section class="flex-1 relative overflow-y-auto overflow-x-hidden border-r-2 border-red-500">
+<!-- WebGL Animated Background -->
+<!-- STITCH_SHADER_START:ANIMATION_10 class="absolute inset-0 w-full h-full pointer-events-none z-0" -->
+<div class="absolute inset-0 w-full h-full pointer-events-none z-0" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_10" style="display:block;width:100%;height:100%"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_10');
+
+  // Sync the WebGL drawing-buffer size with the CSS-driven layout size.
+  // This fires on initial layout and whenever the element is resized.
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+
+varying vec2 v_texCoord;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+// Simplex 2D noise
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.wwww) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+void main() {
+    vec2 uv = v_texCoord;
+    
+    // Wave parameters - MUCH FASTER (from 0.45 to 1.2)
+    float time = u_time * 1.2;
+    
+    // Layered noise for organic water movement
+    float noise1 = snoise(uv * 2.5 + time);
+    float noise2 = snoise(uv * 5.0 - time * 0.7);
+    float combinedNoise = mix(noise1, noise2, 0.5);
+    
+    // Base ocean colors
+    vec3 color1 = vec3(0.02, 0.35, 0.45); // Deep Teal
+    vec3 color2 = vec3(0.05, 0.55, 0.65); // Mid Blue
+    vec3 color3 = vec3(0.9, 0.95, 1.0);   // White foam/glint
+    
+    // Mix colors
+    vec3 color = mix(color1, color2, combinedNoise * 0.5 + 0.5);
+    
+    // Add glistening foam highlights - Faster and more frequent
+    float foam = pow(max(0.0, snoise(uv * 12.0 + time * 2.5)), 12.0);
+    color = mix(color, color3, foam * 0.5);
+    
+    // Vignette for depth
+    float vig = 1.0 - length(uv - 0.5) * 0.6;
+    color *= vig;
+    
+    // Subtlety for background use
+    gl_FragColor = vec4(color, 0.22); 
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  // u_mouse is in pixel coordinates matching u_resolution (ShaderToy convention).
+  // Shaders that need normalized coords should use: u_mouse / u_resolution.
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_10 -->
+<!-- Background Image with Overlay for Readability -->
+<div class="absolute inset-0 z-0" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_FR1KEjE5gwexJkiOZsQKMZudeNblFOSce_lRXdqKRW-Vc-ZFY6PYX8Rn8gtzsRZVPnkInov4fTmQaPkTunjls6qRWKKeKa7gqDUGbXuKU5KPlrs-sUAHLWNbLeR-l3Z6QQVLfabMLKhVLdP3HaCt_tuS4AWgGloInlFkc8T-UePco8nb-zvT0-rtchWH3iCSu4MZxd-kyFa6b40tg3PB_5KE3LQrXDYzQ9g-MbeC3Y5Y_ySrM_u-hw'); background-size: cover; background-position: center;">
+<div class="absolute inset-0 bg-white/70"></div> <!-- Semi-transparent overlay -->
+</div>
+<div class="relative z-10 p-10 flex flex-col items-center min-h-full">
+<!-- BEGIN: Top Controls -->
+<div class="flex gap-4 mb-12">
+<button class="px-6 py-2 border-2 border-green-400 text-green-500 font-bold rounded shadow-sm hover:bg-green-50 transition-colors">
+            Syllable Stress
+          </button>
+<button class="px-6 py-2 bg-red-500 text-white font-bold rounded shadow-sm hover:bg-red-600 transition-colors flex items-center gap-2">
+<i class="fas fa-volume-up"></i> Listen Full Text
+          </button>
+</div>
+<!-- END: Top Controls -->
+<!-- BEGIN: Text Content -->
+<!-- Words are styled with primary blue and targeted letters in green -->
+<div class="max-w-4xl w-full flex flex-wrap gap-x-8 gap-y-10 justify-center text-center">
+<!-- Line 1 -->
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">So</span>cialism</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈsoʊʃəlˌɪzəm/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">is</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈɪz/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">an</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈæn/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">eco<span class="text-green-500 font-bold">no</span>mic</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˌɛkənˈɑmɪk/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">and</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ənd/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">po<span class="text-green-500 font-bold">li</span>tical</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/pəlˈɪtəkəl/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">phi<span class="text-green-500 font-bold">lo</span>sophy</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/fəlˈɑsəfi/</span>
+</div>
+<!-- Line 2 -->
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">cen</span>tered</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈsɛntərd/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">on</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈɑn/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">the</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ðə/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">so</span>cial</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈsoʊʃəl/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">or</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈɔr/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">colle<span class="text-green-500 font-bold">c</span>tive</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/kəlˈɛktɪv/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">ow</span>nership</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈoʊnərˌʃɪp/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">and</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ənd/</span>
+</div>
+<!-- Line 3 -->
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">democ<span class="text-green-500 font-bold">ra</span>tic</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˌdɛməkˈrætɪk/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">adminis<span class="text-green-500 font-bold">tra</span>tion</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ædmˌɪnɪstˈrɛɪʃən/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">of</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈʌv/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">the</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ðə/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">means</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/mˈinz/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">of</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈʌv/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">pro<span class="text-green-500 font-bold">duc</span>tion.</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/prədˈʌkʃən/</span>
+</div>
+<!-- Line 4 -->
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">In</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ɪn/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">con</span>trast</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/kˈɑntræst/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">to</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/tˈu/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">sys</span>tems</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/sˈɪstəmz/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">dri</span>ven</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/drˈɪvən/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">stric</span>tly</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/stˈrɪktli/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">by</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/bˈaɪ/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">indi<span class="text-green-500 font-bold">vi</span>dual</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˌɪndəvˈɪdʒəwəl/</span>
+</div>
+<!-- Line 5 -->
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">pro</span>fit</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/prˈɑfət/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">and</span></span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ənd/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">mar</span>ket</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/mˈɑrkət/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">dy<span class="text-green-500 font-bold">na</span>mics,</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/daɪnˈæmɪks/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">so</span>cialism</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈsoʊʃəlˌɪzəm/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500">prio<span class="text-green-500 font-bold">ri</span>tizes</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/praɪˈɔrətˌaɪzɪz/</span>
+</div>
+<div class="flex flex-col items-center transition-transform duration-300 hover:-translate-y-1 hover:shadow-sm cursor-default">
+<span class="text-3xl font-medium text-blue-500"><span class="text-green-500 font-bold">e</span>quitable</span>
+<span class="text-yellow-500 mt-2 text-sm font-mono">/ˈɛkwətəbəl/</span>
+</div>
+</div>
+<!-- END: Text Content -->
+</div>
+</section>
+<!-- END: Left Content Area -->
+<!-- BEGIN: Right Sidebar Controls -->
+<aside class="w-80 bg-white shadow-xl z-20 flex flex-col h-full scrollbar-custom overflow-y-auto">
+<!-- Sticky Play Button Area -->
+<div class="p-6 sticky top-0 bg-white z-10 border-b border-gray-100">
+<button class="w-full bg-[#fa3e4f] hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex items-center justify-center gap-2">
+<i class="fas fa-volume-up"></i> Play Full Paragraph
+        </button>
+</div>
+<div class="p-6 flex flex-col gap-8">
+<!-- Audio Speed Control -->
+<div>
+<h3 class="font-bold mb-3 text-slate-800">Audio speed</h3>
+<div class="flex gap-4 mb-4 text-sm font-medium">
+<span class="text-red-500 border-b-2 border-red-500 pb-1 cursor-pointer">1.0x</span>
+<span class="text-slate-400 cursor-pointer hover:text-slate-600">0.7x</span>
+<span class="text-slate-400 cursor-pointer hover:text-slate-600">0.5x</span>
+</div>
+<h3 class="font-bold mb-3 text-slate-800">volume</h3>
+<div class="relative pt-1">
+<input class="w-full" id="audio-speed" max="100" min="10" type="range" value="50"/>
+<div class="flex justify-between text-xs text-slate-400 mt-1">
+<span>10</span>
+<span>50</span>
+<span>100</span>
+</div>
+</div>
+</div>
+<hr class="border-gray-200"/>
+<!-- Color Settings Section -->
+<div>
+<div class="flex items-center gap-2 mb-6">
+<div class="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-500">
+<i class="fas fa-tint"></i>
+</div>
+<h2 class="text-xl font-bold">color setting</h2>
+</div>
+<!-- Main Text Setting -->
+<div class="mb-6">
+<label class="block text-blue-500 text-sm mb-2">Main text</label>
+<div class="flex items-center gap-4">
+<select class="border border-blue-400 text-blue-500 rounded px-3 py-1 flex-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none">
+<option>Blue</option>
+</select>
+<div class="flex items-center gap-2 flex-1">
+<span class="text-xs text-red-400">Intensity</span>
+<input class="w-16" id="main-text-intensity" max="100" min="0" type="range" value="100"/>
+<span class="text-xs text-red-500">100%</span>
+</div>
+</div>
+</div>
+<!-- Targeted Letters Setting -->
+<div class="mb-6">
+<label class="block text-green-500 text-sm mb-2">Targeted letters</label>
+<div class="flex items-center gap-4">
+<select class="border border-green-500 text-green-500 rounded px-3 py-1 flex-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500 appearance-none">
+<option>Green</option>
+</select>
+<div class="flex items-center gap-2 flex-1">
+<span class="text-xs text-red-400">Intensity</span>
+<input class="w-16" id="targeted-letters-intensity" max="100" min="0" type="range" value="100"/>
+<span class="text-xs text-green-500">100%</span>
+</div>
+</div>
+</div>
+<!-- Phonetics Setting -->
+<div class="mb-6">
+<div class="flex items-center justify-between mb-2">
+<label class="text-red-500 text-sm">phonetics</label>
+<div class="flex items-center gap-2">
+<!-- Custom Toggle -->
+<div class="relative inline-block w-8 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer" id="toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-300 cursor-pointer" for="toggle"></label>
+</div>
+<!-- Region Badges -->
+<span class="border border-red-500 text-red-500 text-[10px] px-1 rounded font-bold">US</span>
+<span class="bg-red-500 text-white text-[10px] px-1 rounded font-bold">UK</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<select class="border border-yellow-500 text-yellow-500 rounded px-3 py-1 flex-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500 appearance-none">
+<option>Yellow</option>
+</select>
+<div class="flex items-center gap-2 flex-1">
+<span class="text-xs text-red-400">Intensity</span>
+<input class="w-16" id="phonetics-intensity" max="100" min="0" type="range" value="100"/>
+<span class="text-xs text-yellow-500">100%</span>
+</div>
+</div>
+</div>
+<!-- Mark & Save (Partial visibility in image) -->
+<div>
+<label class="block text-yellow-500 text-sm mb-2">Mark &amp; Save</label>
+</div>
+</div>
+</div>
+</aside>
+<!-- END: Right Sidebar Controls -->
+</main>
+<!-- END: Main App Container -->
+</body></html>
