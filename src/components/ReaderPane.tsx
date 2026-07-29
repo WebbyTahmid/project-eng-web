@@ -116,6 +116,7 @@ export default function ReaderPane({
   }
 
   return (
+    <div className="w-full h-full pb-32">
       <div className="flex items-center justify-center gap-4 mb-8">
         <div className="border border-green-400 rounded px-4 py-1">
           <h2 className="text-green-500 font-bold text-center">Syllable Stress</h2>
