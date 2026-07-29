@@ -12,10 +12,12 @@ export default function OceanBackground() {
     const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return;
 
+    // Device Pixel Ratio for crisp, pixel-perfect rendering on high-DPI screens
     const syncSize = () => {
       if (!canvas) return;
-      const w = canvas.clientWidth || 1280;
-      const h = canvas.clientHeight || 720;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.floor((canvas.clientWidth || 1280) * dpr);
+      const h = Math.floor((canvas.clientHeight || 720) * dpr);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -36,9 +38,11 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
+    // Hyper-realistic Realistic Trochoidal Wave Shader with Caustic Shimmer
     const fs = `precision highp float;
 varying vec2 v_texCoord;
 uniform float u_time;
+uniform vec2 u_resolution;
 
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 
@@ -64,25 +68,49 @@ float snoise(vec2 v){
   return 130.0 * dot(m, g);
 }
 
+// Realistic ocean wave caustic pattern
+float waveCaustics(vec2 uv, float t) {
+  vec2 p = uv * 8.0;
+  float c1 = sin(p.x + sin(p.y + t * 0.8) + t * 0.5);
+  float c2 = cos(p.y + cos(p.x + t * 0.6) + t * 0.7);
+  return pow(abs(c1 + c2), 1.5) * 0.15;
+}
+
 void main() {
   vec2 uv = v_texCoord;
-  float time = u_time * 1.2;
-  float noise1 = snoise(uv * 2.5 + time);
-  float noise2 = snoise(uv * 5.0 - time * 0.7);
-  float combinedNoise = mix(noise1, noise2, 0.5);
+  float time = u_time * 0.8; // Smooth natural ocean pace
   
-  vec3 color1 = vec3(0.02, 0.35, 0.45);
-  vec3 color2 = vec3(0.05, 0.55, 0.65);
-  vec3 color3 = vec3(0.9, 0.95, 1.0);
+  // Organic 3-layer wave displacement
+  vec2 waveUv = uv;
+  waveUv.x += sin(uv.y * 6.0 + time * 1.2) * 0.015;
+  waveUv.y += cos(uv.x * 5.0 + time * 0.9) * 0.012;
+
+  float noise1 = snoise(waveUv * 2.8 + time * 0.5);
+  float noise2 = snoise(waveUv * 5.5 - time * 0.4);
+  float noise3 = snoise(waveUv * 10.0 + time * 0.8);
+  
+  float combinedNoise = noise1 * 0.5 + noise2 * 0.3 + noise3 * 0.2;
+  
+  // Exact Ocean Color Palette from Stitch Theme
+  vec3 color1 = vec3(0.02, 0.35, 0.45); // Deep Teal
+  vec3 color2 = vec3(0.05, 0.55, 0.65); // Mid Blue
+  vec3 color3 = vec3(0.95, 0.98, 1.0);  // Sunlit Foam / Caustic Glint
   
   vec3 color = mix(color1, color2, combinedNoise * 0.5 + 0.5);
-  float foam = pow(max(0.0, snoise(uv * 12.0 + time * 2.5)), 12.0);
-  color = mix(color, color3, foam * 0.5);
   
-  float vig = 1.0 - length(uv - 0.5) * 0.6;
+  // Add realistic water caustics & sunlit reflections
+  float caustics = waveCaustics(waveUv, time);
+  color += vec3(caustics * 0.7, caustics * 0.9, caustics);
+  
+  // Smooth glistening foam crests
+  float foam = pow(max(0.0, snoise(waveUv * 14.0 + time * 1.5)), 10.0);
+  color = mix(color, color3, foam * 0.35);
+  
+  // Soft vignette
+  float vig = 1.0 - length(uv - 0.5) * 0.4;
   color *= vig;
   
-  gl_FragColor = vec4(color, 0.18); 
+  gl_FragColor = vec4(color, 0.22); 
 }`;
 
     const createShader = (type: number, src: string) => {
@@ -113,12 +141,14 @@ void main() {
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
     const uTime = gl.getUniformLocation(prog, 'u_time');
+    const uRes = gl.getUniformLocation(prog, 'u_resolution');
     let animId: number;
 
     const render = (t: number) => {
       if (canvas) {
         gl.viewport(0, 0, canvas.width, canvas.height);
         if (uTime) gl.uniform1f(uTime, t * 0.001);
+        if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
       animId = requestAnimationFrame(render);
@@ -134,20 +164,35 @@ void main() {
 
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
-      {/* Background Ocean Image from Stitch Theme */}
+      {/* Background Ocean Image with Gentle Breathing Wave Animation */}
       <div 
-        className="absolute inset-0 bg-cover bg-center transition-all duration-700" 
+        className="absolute inset-[-10px] bg-cover bg-center transition-transform ease-in-out animate-ocean-wave" 
         style={{ 
           backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_FR1KEjE5gwexJkiOZsQKMZudeNblFOSce_lRXdqKRW-Vc-ZFY6PYX8Rn8gtzsRZVPnkInov4fTmQaPkTunjls6qRWKKeKa7gqDUGbXuKU5KPlrs-sUAHLWNbLeR-l3Z6QQVLfabMLKhVLdP3HaCt_tuS4AWgGloInlFkc8T-UePco8nb-zvT0-rtchWH3iCSu4MZxd-kyFa6b40tg3PB_5KE3LQrXDYzQ9g-MbeC3Y5Y_ySrM_u-hw')` 
         }} 
       />
-      {/* WebGL Animated Water Waves Canvas */}
+      {/* WebGL Animated Pixel-Perfect Water Waves & Caustics Canvas */}
       <canvas 
         ref={canvasRef} 
-        className="absolute inset-0 w-full h-full block opacity-80" 
+        className="absolute inset-0 w-full h-full block opacity-85" 
       />
       {/* Soft Semi-transparent Overlay for Text Legibility */}
       <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px]" />
+
+      <style jsx global>{`
+        @keyframes oceanWave {
+          0%, 100% {
+            transform: scale(1.02) translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: scale(1.05) translateY(-6px) rotate(0.3deg);
+          }
+        }
+        .animate-ocean-wave {
+          animation: oceanWave 14s ease-in-out infinite;
+          will-change: transform;
+        }
+      `}</style>
     </div>
   );
 }
